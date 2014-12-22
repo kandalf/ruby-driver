@@ -132,6 +132,26 @@ module Cassandra
       io.string
     end
 
+    def type_to_cql(type)
+      case type
+      when Array
+        case type[0]
+        when :list, :set
+          "#{type[0].to_s}<#{type_to_cql(type[1])}>"
+        when :map
+          "#{type[0].to_s}<#{type_to_cql(type[1])}, #{type_to_cql(type[2])}>"
+        when :udt
+          "frozen <#{escape_name(type[2])}>"
+        when :tuple
+          "frozen <tuple<#{type[1].map(&method(:type_to_cql)).join(', ')}>>"
+        else
+          type.to_s
+        end
+      else
+        type.to_s
+      end
+    end
+
     def escape_name(name)
       return name if name[LOWERCASE_REGEXP] == name
       DBL_QUOT + name + DBL_QUOT
@@ -159,6 +179,17 @@ module Cassandra
             assert_type(type[1], k)
             assert_type(type[2], v)
           end
+        when :udt
+          keyspace = type[1]
+          name     = type[2]
+          fields   = type[3]
+
+          fields.each do |(field_name, field_type)|
+            assert_responds_to(field_name, value, message, &block)
+            assert_type(field_type, value.send(field_name))
+          end
+        when :custom
+          assert_responds_to_all([:bytesize, :to_s], value, message, &block)
         else
           raise ::RuntimeError, "unsupported complex type #{type.inspect}"
         end

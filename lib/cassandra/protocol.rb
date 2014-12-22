@@ -28,7 +28,9 @@ module Cassandra
 
       BYTES_FORMAT = 'C*'.freeze
       TWO_INTS_FORMAT = 'NN'.freeze
-      HEADER_FORMAT = 'c4N'.freeze
+
+      HEADER_FORMAT_V1 = 'c4N'.freeze
+      HEADER_FORMAT_V3 = 'c2ncN'.freeze
     end
 
     module Constants
@@ -36,12 +38,15 @@ module Cassandra
       FALSE_BYTE = "\x00".freeze
       PROTOCOL_VERSION = "\x01".freeze
       COMPRESSION_OFF = "\x00".freeze
+
+      SCHEMA_CHANGE_TARGET_KEYSPACE = 'KEYSPACE'.freeze
+      SCHEMA_CHANGE_TARGET_TABLE    = 'TABLE'.freeze
+      SCHEMA_CHANGE_TARGET_UDT      = 'TYPE'.freeze
     end
   end
 end
 
 require 'cassandra/protocol/cql_byte_buffer'
-require 'cassandra/protocol/type_converter'
 require 'cassandra/protocol/response'
 require 'cassandra/protocol/responses/auth_challenge_response'
 require 'cassandra/protocol/responses/auth_success_response'
@@ -72,6 +77,8 @@ require 'cassandra/protocol/requests/query_request'
 require 'cassandra/protocol/requests/void_query_request'
 require 'cassandra/protocol/requests/prepare_request'
 require 'cassandra/protocol/requests/execute_request'
-require 'cassandra/protocol/frame_encoder'
-require 'cassandra/protocol/frame_decoder'
 require 'cassandra/protocol/cql_protocol_handler'
+
+require 'cassandra/protocol/v1'
+require 'cassandra/protocol/v3'
+require 'cassandra/protocol/coder'

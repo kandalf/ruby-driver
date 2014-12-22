@@ -172,7 +172,10 @@ module Cassandra
 
 
       def query(statement, options)
-        request = Protocol::QueryRequest.new(statement.cql, statement.params, nil, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        return @futures.error(Errors::ClientError.new("Positional arguments are not supported by the current version of Apache Cassandra")) if !statement.params.empty? && @connection_options.protocol_version == 1
+        return @futures.error(Errors::ClientError.new("Named arguments are not supported by the current version of Apache Cassandra")) if statement.params.is_a?(::Hash) && @connection_options.protocol_version < 3
+
+        request = Protocol::QueryRequest.new(statement.cql, statement.params, statement.params_types, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         timeout = options.timeout
         promise = @futures.promise
 
@@ -199,9 +202,11 @@ module Cassandra
       end
 
       def execute(statement, options)
+        return @futures.error(Errors::ClientError.new("Named arguments are not supported by the current version of Apache Cassandra")) if statement.params.is_a?(::Hash) && @connection_options.protocol_version < 3
+
         timeout         = options.timeout
         result_metadata = statement.result_metadata
-        request         = Protocol::ExecuteRequest.new(nil, statement.params_metadata, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
+        request         = Protocol::ExecuteRequest.new(nil, statement.params_types, statement.params, result_metadata.nil?, options.consistency, options.serial_consistency, options.page_size, options.paging_state, options.trace?)
         promise         = @futures.promise
 
         keyspace = @keyspace
@@ -249,8 +254,8 @@ module Cassandra
       BOOTSTRAPPING_ERROR_CODE = 0x1002
       UNPREPARED_ERROR_CODE    = 0x2500
 
-      SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", nil, nil, :one)
-      SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", nil, nil, :one)
+      SELECT_SCHEMA_PEERS = Protocol::QueryRequest.new("SELECT peer, rpc_address, schema_version FROM system.peers", EMPTY_LIST, EMPTY_LIST, :one)
+      SELECT_SCHEMA_LOCAL = Protocol::QueryRequest.new("SELECT schema_version FROM system.local WHERE key='local'", EMPTY_LIST, EMPTY_LIST, :one)
 
       def connected(f)
         if f.resolved?
@@ -522,12 +527,12 @@ module Cassandra
             id = synchronize { @prepared_statements[host][cql] }
 
             if id
-              request.add_prepared(id, statement.params_metadata, statement.params)
+              request.add_prepared(id, statement.params, statement.params_types)
             else
               unprepared[cql] << statement
             end
           else
-            request.add_query(cql, statement.params)
+            request.add_query(cql, statement.params, statement.params_types)
           end
         end
 
@@ -544,7 +549,7 @@ module Cassandra
               prepared_ids = f.value
               to_prepare.each_with_index do |(_, statements), i|
                 statements.each do |statement|
-                  request.add_prepared(prepared_ids[i], statement.params_metadata, statement.params)
+                  request.add_prepared(prepared_ids[i], statement.params, statement.params_types)
                 end
               end
 
@@ -714,7 +719,7 @@ module Cassandra
             when Protocol::RowsResultResponse
               promise.fulfill(Results::Paged.new(r.rows, r.paging_state, r.trace_id, keyspace, statement, options, hosts, request.consistency, retries, self, @futures))
             when Protocol::SchemaChangeResultResponse
-              @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.table.empty?
+              @schema.delete_keyspace(r.keyspace) if r.change == 'DROPPED' && r.target == Protocol::Constants::SCHEMA_CHANGE_TARGET_KEYSPACE
 
               @logger.debug('Waiting for schema to propagate to all hosts after a change')
               wait_for_schema_agreement(connection, @reconnection_policy.schedule).on_complete do |f|
@@ -797,7 +802,7 @@ module Cassandra
 
         return pending_switch || Ione::Future.resolved if pending_keyspace == keyspace
 
-        request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", nil, nil, :one)
+        request = Protocol::QueryRequest.new("USE #{Util.escape_name(keyspace)}", EMPTY_LIST, EMPTY_LIST, :one)
 
         f = connection.send_request(request, timeout).map do |r|
           case r

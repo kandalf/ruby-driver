@@ -30,7 +30,7 @@ module Cassandra
       end
 
       def to_s
-        %(AUTH_SUCCESS #{@token.bytesize})
+        %(AUTH_SUCCESS #{@token && @token.bytesize})
       end
 
       private

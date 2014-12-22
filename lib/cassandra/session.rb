@@ -34,13 +34,18 @@ module Cassandra
     end
 
     # Executes a given statement and returns a future result
-    # @!method execute_async(statement, *args, options = {})
+    # @!method execute_async(statement, *args, options = nil)
+    #
+    # @deprecated Please use `:arguments` option instead of `*args` to
+    #   provide named or positional arguments.
     #
     # @param statement [String, Cassandra::Statements::Simple,
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
-    # @param args [*Object] arguments to paramterized query or prepared
-    #   statement
+    #
+    # @param args [*Object] **this style of positional arguments is deprecated,
+    #   please use the `:arguments` options instead** - positional arguments to
+    #   paramterized query or prepared statement
     #
     # @option options [Symbol] :consistency consistency level for the request.
     #   Must be one of {Cassandra::CONSISTENCIES}
@@ -56,6 +61,8 @@ module Cassandra
     # @option options [String] :paging_state (nil) this option is used for
     #   stateless paging, where result paging is resumed some time after the
     #   initial request.
+    # @option options [Hash, Array] :arguments (nil) named or positional
+    #   arguments for the statement.
     #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
@@ -72,19 +79,29 @@ module Cassandra
     # @see Cassandra::Session#execute A list of errors this future can be
     #   resolved with
     def execute_async(statement, *args)
-      if args.last.is_a?(::Hash)
-        options = @options.override(args.pop)
+      options = nil
+      options = args.pop if args.last.is_a?(::Hash)
+
+      unless args.empty?
+        ::Kernel.warn("[WARNING] Splat style (*args) positional arguments are deprecated, use the :arguments option instead, called from #{caller.first}")
+
+        options ||= {}
+        options[:arguments] = args
+      end
+
+      if options
+        options = @options.override(options)
       else
         options = @options
       end
 
       case statement
       when ::String
-        @client.query(Statements::Simple.new(statement, *args), options)
+        @client.query(Statements::Simple.new(statement, options.arguments), options)
       when Statements::Simple
         @client.query(statement, options)
       when Statements::Prepared
-        @client.execute(statement.bind(*args), options)
+        @client.execute(statement.bind(options.arguments), options)
       when Statements::Bound
         @client.execute(statement, options)
       when Statements::Batch
@@ -92,6 +109,8 @@ module Cassandra
       else
         @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
+    rescue => e
+      @futures.error(e)
     end
 
     # A blocking wrapper around {Cassandra::Session#execute_async}
@@ -135,6 +154,8 @@ module Cassandra
       else
         @futures.error(::ArgumentError.new("unsupported statement #{statement.inspect}"))
       end
+    rescue => e
+      @futures.error(e)
     end
 
     # A blocking wrapper around {Cassandra::Session#prepare_async}

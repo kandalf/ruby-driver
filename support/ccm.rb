@@ -368,19 +368,23 @@ module CCM extend self
       end
 
       if @server_cert
-        options[:server_cert] = @server_cert
+        # options[:server_cert] = @server_cert
+        options[:ssl] = true
       end
 
       if @client_cert
-        options[:client_cert] = @client_cert
+        # options[:client_cert] = @client_cert
+        options[:ssl] = true
       end
 
       if @private_key
-        options[:private_key] = @private_key
+        # options[:private_key] = @private_key
+        options[:ssl] = true
       end
 
       if @passphrase
-        options[:passphrase] = @passphrase
+        # options[:passphrase] = @passphrase
+        options[:ssl] = true
       end
 
       attempts = 1
@@ -633,7 +637,7 @@ module CCM extend self
     def logger
       @logger ||= begin
         logger = Logger.new($stderr)
-        logger.level = Logger::INFO
+        # logger.level = Logger::INFO
         logger.formatter = proc { |severity, time, progname, message|
           "Cluster:0x#{object_id.to_s(16)} | #{time.strftime("%T,%L")} - [#{severity}] #{message}\n"
         }
@@ -646,33 +650,25 @@ module CCM extend self
     ENV['CASSANDRA_VERSION'] || '2.0.10'
   end
 
-  def cassandra_cluster
-    'ruby-driver-cassandra-' + cassandra_version + '-test-cluster'
-  end
-
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    if @current_cluster
-      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
-        @current_cluster.stop
-        remove_cluster(@current_cluster.name)
-        create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
-      end
+    cluster_name = 'ruby-driver-cassandra-%s-tests-cluster-%sx%s' % [cassandra_version, no_dc, no_nodes_per_dc]
 
+    if @current_cluster && @current_cluster.name == cluster_name
       @current_cluster.start
       return @current_cluster
     end
 
-    if cluster_exists?(cassandra_cluster)
-      switch_cluster(cassandra_cluster)
+    if cluster_exists?(cluster_name)
+      switch_cluster(cluster_name)
 
       unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
         @current_cluster.stop
         remove_cluster(@current_cluster.name)
-        create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
+        create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
       end
     else
       @current_cluster && @current_cluster.stop
-      create_cluster(cassandra_cluster, cassandra_version, no_dc, no_nodes_per_dc)
+      create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
     end
 
     @current_cluster.start

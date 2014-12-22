@@ -44,7 +44,9 @@ module Cassandra
           "org.apache.cassandra.db.marshal.TimeUUIDType"      => :timeuuid,
           "org.apache.cassandra.db.marshal.MapType"           => :map,
           "org.apache.cassandra.db.marshal.SetType"           => :set,
-          "org.apache.cassandra.db.marshal.ListType"          => :list
+          "org.apache.cassandra.db.marshal.ListType"          => :list,
+          "org.apache.cassandra.db.marshal.UserType"          => :udt,
+          "org.apache.cassandra.db.marshal.TupleType"         => :tuple
         }.freeze
 
         def parse(string)
@@ -103,6 +105,23 @@ module Cassandra
             [type, lookup_type(node.children.first)]
           when :map
             [type, *node.children.map {|child| lookup_type(child)}]
+          when :udt
+            keyspace = node.children.shift.name
+            name     = [node.children.shift.name].pack('H*')
+            fields   = node.children.map do |child|
+              field_name, child_name = child.name.split(":")
+
+              child.name = child_name
+              field_name = [field_name].pack('H*').force_encoding(::Encoding::UTF_8)
+
+              [field_name, lookup_type(child)]
+            end
+
+            [:udt, keyspace, name, fields]
+          when :tuple
+            fields = node.children.map(&method(:lookup_type))
+
+            [:tuple, fields]
           else
             type
           end
