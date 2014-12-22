@@ -368,23 +368,19 @@ module CCM extend self
       end
 
       if @server_cert
-        # options[:server_cert] = @server_cert
-        options[:ssl] = true
+        options[:server_cert] = @server_cert
       end
 
       if @client_cert
-        # options[:client_cert] = @client_cert
-        options[:ssl] = true
+        options[:client_cert] = @client_cert
       end
 
       if @private_key
-        # options[:private_key] = @private_key
-        options[:ssl] = true
+        options[:private_key] = @private_key
       end
 
       if @passphrase
-        # options[:passphrase] = @passphrase
-        options[:ssl] = true
+        options[:passphrase] = @passphrase
       end
 
       attempts = 1

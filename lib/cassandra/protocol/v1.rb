@@ -159,9 +159,23 @@ module Cassandra
 
         private
 
+        CODE_ERROR          = 0x00
+        CODE_READY          = 0x02
+        CODE_AUTHENTICATE   = 0x03
+        CODE_SUPPORTED      = 0x06
+        CODE_RESULT         = 0x08
+        CODE_EVENT          = 0x0c
+        CODE_AUTH_CHALLENGE = 0x0e
+        CODE_AUTH_SUCCESS   = 0x10
+
         def decode_response(opcode, protocol_version, buffer, size, trace_id)
           response = case opcode
-          when 0x00 # ERROR
+          when CODE_READY          then READY
+          when CODE_AUTHENTICATE   then AuthenticateResponse.new(buffer.read_string)
+          when CODE_AUTH_CHALLENGE then AuthChallengeResponse.new(buffer.read_bytes)
+          when CODE_AUTH_SUCCESS   then AuthSuccessResponse.new(buffer.read_bytes)
+          when CODE_SUPPORTED      then SupportedResponse.new(buffer.read_string_multimap)
+          when CODE_ERROR
             code    = buffer.read_int
             message = buffer.read_string
 
@@ -208,13 +222,7 @@ module Cassandra
             else
               ErrorResponse.new(code, message)
             end
-          when 0x02 # READY
-            READY
-          when 0x03 # AUTHENTICATE
-            AuthenticateResponse.new(buffer.read_string)
-          when 0x06 # SUPPORTED
-            SupportedResponse.new(buffer.read_string_multimap)
-          when 0x08 # RESULT
+          when CODE_RESULT
             result_type = buffer.read_int
             case result_type
             when 0x0001 # Void
@@ -244,7 +252,7 @@ module Cassandra
             else
               raise Errors::DecodingError, "Unsupported result type: #{result_type.inspect}"
             end
-          when 0x0C # EVENT
+          when CODE_EVENT
             event_type = buffer.read_string
             case event_type
             when 'SCHEMA_CHANGE'
@@ -256,10 +264,6 @@ module Cassandra
             else
               raise Errors::DecodingError, "Unsupported event type: #{event_type.inspect}"
             end
-          when 0x0E # AUTH_CHALLENGE
-            AuthChallengeResponse.new(buffer.read_bytes)
-          when 0x10 # AUTH_SUCCESS
-            AuthSuccessResponse.new(buffer.read_bytes)
           else
             raise Errors::DecodingError, "Unsupported response opcode: #{opcode.inspect}"
           end

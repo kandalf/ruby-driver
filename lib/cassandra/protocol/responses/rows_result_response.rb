@@ -26,18 +26,6 @@ module Cassandra
         @rows, @metadata, @paging_state = rows, metadata, paging_state
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        original_buffer_length = buffer.length
-        column_specs, columns_count, paging_state = read_metadata(protocol_version, buffer)
-        if column_specs.nil?
-          consumed_bytes = original_buffer_length - buffer.length
-          remaining_bytes = CqlByteBuffer.new(buffer.read(length - consumed_bytes))
-          RawRowsResultResponse.new(protocol_version, remaining_bytes, paging_state, trace_id)
-        else
-          new(read_rows(protocol_version, buffer, column_specs), column_specs, paging_state, trace_id)
-        end
-      end
-
       def to_s
         %(RESULT ROWS #@metadata #@rows)
       end

@@ -37,32 +37,19 @@ module Cassandra
 
       def write_value_v3(buffer, value, type)
         case type
-        when :ascii
-          write_ascii(buffer, value)
-        when :bigint, :counter
-          write_bigint(buffer, value)
-        when :blob
-          write_blob(buffer, value)
-        when :boolean
-          write_boolean(buffer, value)
-        when :decimal
-          write_decimal(buffer, value)
-        when :double
-          write_double(buffer, value)
-        when :float
-          write_float(buffer, value)
-        when :int
-          write_int(buffer, value)
-        when :inet
-          write_inet(buffer, value)
-        when :timestamp
-          write_timestamp(buffer, value)
-        when :uuid, :timeuuid
-          write_uuid(buffer, value)
-        when :varchar
-          write_varchar(buffer, value)
-        when :varint
-          write_varint(buffer, value)
+        when :ascii            then write_ascii(buffer, value)
+        when :bigint, :counter then write_bigint(buffer, value)
+        when :blob             then write_blob(buffer, value)
+        when :boolean          then write_boolean(buffer, value)
+        when :decimal          then write_decimal(buffer, value)
+        when :double           then write_double(buffer, value)
+        when :float            then write_float(buffer, value)
+        when :int              then write_int(buffer, value)
+        when :inet             then write_inet(buffer, value)
+        when :timestamp        then write_timestamp(buffer, value)
+        when :uuid, :timeuuid  then write_uuid(buffer, value)
+        when :varchar          then write_varchar(buffer, value)
+        when :varint           then write_varint(buffer, value)
         when ::Array
           case type.first
           when :list, :set
@@ -149,34 +136,20 @@ module Cassandra
 
       def read_value_v3(buffer, type)
         case type
-        when :ascii
-          read_ascii(buffer)
-        when :bigint, :counter
-          read_bigint(buffer)
-        when :blob
-          buffer.read_bytes
-        when :boolean
-          read_boolean(buffer)
-        when :decimal
-          read_decimal(buffer)
-        when :double
-          read_double(buffer)
-        when :float
-          read_float(buffer)
-        when :int
-          read_int(buffer)
-        when :timestamp
-          read_timestamp(buffer)
-        when :uuid
-          read_uuid(buffer)
-        when :timeuuid
-          read_uuid(buffer, TimeUuid)
-        when :varchar
-          read_varchar(buffer)
-        when :varint
-          read_varint(buffer)
-        when :inet
-          read_inet(buffer)
+        when :ascii            then read_ascii(buffer)
+        when :bigint, :counter then read_bigint(buffer)
+        when :blob             then buffer.read_bytes
+        when :boolean          then read_boolean(buffer)
+        when :decimal          then read_decimal(buffer)
+        when :double           then read_double(buffer)
+        when :float            then read_float(buffer)
+        when :int              then read_int(buffer)
+        when :timestamp        then read_timestamp(buffer)
+        when :uuid             then read_uuid(buffer)
+        when :timeuuid         then read_uuid(buffer, TimeUuid)
+        when :varchar          then read_varchar(buffer)
+        when :varint           then read_varint(buffer)
+        when :inet             then read_inet(buffer)
         when ::Array
           case type.first
           when :list
@@ -309,32 +282,19 @@ module Cassandra
 
       def write_value_v1(buffer, value, type)
         case type
-        when :ascii
-          write_ascii(buffer, value)
-        when :bigint, :counter
-          write_bigint(buffer, value)
-        when :blob
-          write_blob(buffer, value)
-        when :boolean
-          write_boolean(buffer, value)
-        when :decimal
-          write_decimal(buffer, value)
-        when :double
-          write_double(buffer, value)
-        when :float
-          write_float(buffer, value)
-        when :int
-          write_int(buffer, value)
-        when :inet
-          write_inet(buffer, value)
-        when :text, :varchar
-          write_varchar(buffer, value)
-        when :timestamp
-          write_timestamp(buffer, value)
-        when :timeuuid, :uuid
-          write_uuid(buffer, value)
-        when :varint
-          write_varint(buffer, value)
+        when :ascii            then write_ascii(buffer, value)
+        when :bigint, :counter then write_bigint(buffer, value)
+        when :blob             then write_blob(buffer, value)
+        when :boolean          then write_boolean(buffer, value)
+        when :decimal          then write_decimal(buffer, value)
+        when :double           then write_double(buffer, value)
+        when :float            then write_float(buffer, value)
+        when :int              then write_int(buffer, value)
+        when :inet             then write_inet(buffer, value)
+        when :text, :varchar   then write_varchar(buffer, value)
+        when :timestamp        then write_timestamp(buffer, value)
+        when :timeuuid, :uuid  then write_uuid(buffer, value)
+        when :varint           then write_varint(buffer, value)
         when ::Array
           case type.first
           when :list, :set
@@ -370,6 +330,8 @@ module Cassandra
           else
             raise Errors::EncodingError, %(Unsupported value type: #{type})
           end
+        else
+          raise Errors::EncodingError, %(Unsupported value type: #{type})
         end
       end
 
@@ -387,34 +349,20 @@ module Cassandra
 
       def read_value_v1(buffer, type)
         case type
-        when :ascii
-          read_ascii(buffer)
-        when :bigint, :counter
-          read_bigint(buffer)
-        when :blob
-          buffer.read_bytes
-        when :boolean
-          read_boolean(buffer)
-        when :decimal
-          read_decimal(buffer)
-        when :double
-          read_double(buffer)
-        when :float
-          read_float(buffer)
-        when :int
-          read_int(buffer)
-        when :timestamp
-          read_timestamp(buffer)
-        when :varchar, :text
-          read_varchar(buffer)
-        when :varint
-          read_varint(buffer)
-        when :uuid
-          read_uuid(buffer)
-        when :timeuuid
-          read_uuid(buffer, TimeUuid)
-        when :inet
-          read_inet(buffer)
+        when :ascii            then read_ascii(buffer)
+        when :bigint, :counter then read_bigint(buffer)
+        when :blob             then buffer.read_bytes
+        when :boolean          then read_boolean(buffer)
+        when :decimal          then read_decimal(buffer)
+        when :double           then read_double(buffer)
+        when :float            then read_float(buffer)
+        when :int              then read_int(buffer)
+        when :timestamp        then read_timestamp(buffer)
+        when :varchar, :text   then read_varchar(buffer)
+        when :varint           then read_varint(buffer)
+        when :uuid             then read_uuid(buffer)
+        when :timeuuid         then read_uuid(buffer, TimeUuid)
+        when :inet             then read_inet(buffer)
         when ::Array
           case type.first
           when :list

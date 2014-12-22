@@ -76,9 +76,12 @@ module Cassandra
         unless paging_state.nil?
           paging_state = String(paging_state)
           Util.assert_not_empty(paging_state) { ":paging_state must not be empty" }
+          Util.assert(!page_size.nil?) { ":page_size is required when :paging_state is given" }
         end
 
-        unless arguments.nil?
+        if arguments.nil?
+          arguments = EMPTY_LIST
+        else
           Util.assert_instance_of_one_of([::Hash, ::Array], arguments) { ":arguments must be an Array or Hash" }
         end
 
@@ -95,6 +98,18 @@ module Cassandra
       def trace?
         @trace
       end
+
+      def eql?(other)
+        other.is_a?(Options) && \
+          other.consistency == @consistency &&
+          other.page_size == @page_size &&
+          other.trace? == @trace &&
+          other.timeout == @timeout &&
+          other.serial_consistency == @serial_consistency &&
+          other.paging_state == @paging_state &&
+          other.arguments == @arguments
+      end
+      alias :== :eql?
 
       # @private
       def override(*options)
@@ -115,7 +130,7 @@ module Cassandra
           :trace              => @trace,
           :timeout            => @timeout,
           :serial_consistency => @serial_consistency,
-          :arguments          => @arguments
+          :arguments          => @arguments || EMPTY_LIST
         }
       end
     end

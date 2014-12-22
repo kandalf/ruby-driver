@@ -55,18 +55,49 @@ module Cassandra
         @statements = []
       end
 
-      # Adds a statement to this batch
+      # @!method add(statement, args)
+      # Adds a statement to this batch.
+      #
       # @param statement [String, Cassandra::Statements::Simple,
-      #   Cassandra::Statements::Prepared, Cassandra::Statements::Bound] statement to add
-      # @param args [*Object] arguments to paramterized query or prepared
-      #   statement
+      #   Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
+      #   statement to add.
+      # @param args [Hash, Array] named or positional arguments to bind, must
+      #   contain the same number of parameters as the number of named
+      #   (`:name`) or positional (`?`) markers in the original CQL passed to
+      #   {Cassandra::Session#prepare}
+      #
+      # @note Positional arguments are only supported on Apache Cassandra 2.1
+      #   and above.
+      #
+      # @overload add(statement, *args)
+      #   Adds a statement to this batch using the deprecated splat-style way of
+      #   passing positional arguments
+      #
+      #   @deprecated Please pass a single {Hash} or {Array} of named or
+      #     positional arguments accordingly, the `*args` style is deprecated.
+      #
+      #   @param statement [String, Cassandra::Statements::Simple,
+      #     Cassandra::Statements::Prepared, Cassandra::Statements::Bound]
+      #     statement to add.
+      #   @param args [*Object] **this style of positional arguments is
+      #     deprecated, please pass a single {Array} or {Hash} instead** -
+      #     arguments to paramterized query or prepared statement
+      #
       # @return [self]
       def add(statement, *args)
+        if args.one? && (args.first.is_a?(::Array) || args.first.is_a?(::Hash))
+          args = args.first
+        elsif !args.empty?
+          ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
+                        "are deprecated, pass a Hash or an Array instead - " \
+                        "called from #{caller.first}"
+        end
+
         case statement
         when String
-          @statements << Simple.new(statement, *args)
+          @statements << Simple.new(statement, args)
         when Prepared
-          @statements << statement.bind(*args)
+          @statements << statement.bind(args)
         when Bound, Simple
           @statements << statement
         else

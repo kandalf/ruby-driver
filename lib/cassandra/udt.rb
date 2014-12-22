@@ -82,10 +82,12 @@ module Cassandra
     # Sets value of the field.
     #
     # @param field [String] name of the field to lookup.
-    # @param value [Symbol] new value for the field.
+    # @param value [Object] new value for the field.
     #
     # @return [Cassandra::UDT] self.
     def []=(field, value)
+      raise ::ArgumentError, "Unsupported field #{field.inspect}" unless @values.has_key?(field)
+
       @values[field] = value
 
       self

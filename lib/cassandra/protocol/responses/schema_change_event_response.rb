@@ -44,10 +44,6 @@ module Cassandra
         TYPE
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string, buffer.read_string, buffer.read_string)
-      end
-
       def eql?(rs)
         rs.type == self.type && rs.change == self.change && rs.keyspace == self.keyspace && rs.table == self.table
       end

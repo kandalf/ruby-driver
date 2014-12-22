@@ -284,50 +284,7 @@ module Cassandra
     end
 
     if has_client_cert || has_server_cert
-      context = ::OpenSSL::SSL::SSLContext.new(:TLSv1)
-      context.ciphers = %w{
-        ECDHE-ECDSA-AES128-GCM-SHA256
-        ECDHE-RSA-AES128-GCM-SHA256
-        ECDHE-ECDSA-AES256-GCM-SHA384
-        ECDHE-RSA-AES256-GCM-SHA384
-        DHE-RSA-AES128-GCM-SHA256
-        DHE-DSS-AES128-GCM-SHA256
-        DHE-RSA-AES256-GCM-SHA384
-        DHE-DSS-AES256-GCM-SHA384
-        ECDHE-ECDSA-AES128-SHA256
-        ECDHE-RSA-AES128-SHA256
-        ECDHE-ECDSA-AES128-SHA
-        ECDHE-RSA-AES128-SHA
-        ECDHE-ECDSA-AES256-SHA384
-        ECDHE-RSA-AES256-SHA384
-        ECDHE-ECDSA-AES256-SHA
-        ECDHE-RSA-AES256-SHA
-        DHE-RSA-AES128-SHA256
-        DHE-RSA-AES256-SHA256
-        DHE-RSA-AES128-SHA
-        DHE-RSA-AES256-SHA
-        DHE-DSS-AES128-SHA256
-        DHE-DSS-AES256-SHA256
-        DHE-DSS-AES128-SHA
-        DHE-DSS-AES256-SHA
-        AES128-GCM-SHA256
-        AES256-GCM-SHA384
-        AES128-SHA256
-        AES256-SHA256
-        AES128-SHA
-        AES256-SHA
-        ECDHE-ECDSA-RC4-SHA
-        ECDHE-RSA-RC4-SHA
-        RC4-SHA
-      }
-
-      ssl_options  = ::OpenSSL::SSL::OP_ALL
-      ssl_options &= ~::OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS if defined?(::OpenSSL::SSL::OP_DONT_INSERT_EMPTY_FRAGMENTS)
-      ssl_options |= ::OpenSSL::SSL::OP_NO_COMPRESSION if defined?(::OpenSSL::SSL::OP_NO_COMPRESSION)
-      ssl_options |= ::OpenSSL::SSL::OP_NO_SSLv2 if defined?(::OpenSSL::SSL::OP_NO_SSLv2)
-      ssl_options |= ::OpenSSL::SSL::OP_NO_SSLv3 if defined?(::OpenSSL::SSL::OP_NO_SSLv3)
-
-      context.options = ssl_options
+      context = ::OpenSSL::SSL::SSLContext.new
 
       if has_server_cert
         context.ca_file     = server_cert

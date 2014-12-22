@@ -33,19 +33,14 @@ module Cassandra
       @futures = futures_factory
     end
 
+    # @!method execute_async(statement, options = nil)
     # Executes a given statement and returns a future result
-    # @!method execute_async(statement, *args, options = nil)
-    #
-    # @deprecated Please use `:arguments` option instead of `*args` to
-    #   provide named or positional arguments.
     #
     # @param statement [String, Cassandra::Statements::Simple,
     #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
     #   statement to execute
     #
-    # @param args [*Object] **this style of positional arguments is deprecated,
-    #   please use the `:arguments` options instead** - positional arguments to
-    #   paramterized query or prepared statement
+    # @param options [nil, Hash] a customizable set of options
     #
     # @option options [Symbol] :consistency consistency level for the request.
     #   Must be one of {Cassandra::CONSISTENCIES}
@@ -64,14 +59,31 @@ module Cassandra
     # @option options [Hash, Array] :arguments (nil) named or positional
     #   arguments for the statement.
     #
+    # @overload execute_async(statement, *args, options = nil)
+    #   Executes a statement using the deprecated splat-style way of passing
+    #   positional arguments/
+    #
+    #   @deprecated This style will soon be removed, use the `:arguments`
+    #     option to provide named or positional arguments instead.
+    #
+    #   @param statement [String, Cassandra::Statements::Simple,
+    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
+    #     statement to execute
+    #
+    #   @param args [*Object] **this style of positional arguments is
+    #     deprecated, please use the `:arguments` options instead** -
+    #     positional arguments to paramterized query or prepared statement.
+    #
+    #   @param options [nil, Hash] a customizable set of options
+    #
+    #   @note Last argument will be treated as `options` if it is a {Hash}.
+    #     Therefore, make sure to pass empty `options` when executing a
+    #     statement with the last parameter required to be a map datatype.
+    #
     # @see Cassandra.cluster Options that can be specified on the cluster-level
     #   and their default values.
     #
-    # @note Last argument will be treated as `options` if it is a {Hash}.
-    #   Therefore, make sure to pass empty `options` when executing a statement
-    #   with the last parameter required to be a map datatype.
-    #
-    # @note Positional arguments are only supported on Apache Cassandra 2.0 and
+    # @note Positional arguments are only supported on Apache Cassandra 2.1 and
     #   above.
     #
     # @return [Cassandra::Future<Cassandra::Result>]
@@ -113,8 +125,36 @@ module Cassandra
       @futures.error(e)
     end
 
+    # @!method execute(statement, options = nil)
     # A blocking wrapper around {Cassandra::Session#execute_async}
-    # @!method execute(statement, *args, options = {})
+    #
+    # @param statement [String, Cassandra::Statements::Simple,
+    #   Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
+    #   statement to execute
+    #
+    # @param options [nil, Hash] a customizable set of options
+    #
+    # @overload execute(statement, *args, options = nil)
+    #   Executes a statement using the deprecated splat-style way of passing
+    #   positional arguments/
+    #
+    #   @deprecated This style will soon be removed, use the `:arguments`
+    #     option to provide named or positional arguments instead.
+    #
+    #   @param statement [String, Cassandra::Statements::Simple,
+    #     Cassandra::Statements::Bound, Cassandra::Statements::Prepared]
+    #     statement to execute
+    #
+    #   @param args [*Object] **this style of positional arguments is
+    #     deprecated, please use the `:arguments` options instead** -
+    #     positional arguments to paramterized query or prepared statement.
+    #
+    #   @param options [nil, Hash] a customizable set of options
+    #
+    #   @note Last argument will be treated as `options` if it is a {Hash}.
+    #     Therefore, make sure to pass empty `options` when executing a
+    #     statement with the last parameter required to be a map datatype.
+    #
     # @see Cassandra::Session#execute_async
     # @see Cassandra::Future#get
     #

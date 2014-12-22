@@ -29,17 +29,23 @@ module Cassandra
       # @private
       attr_reader :params_types
 
+      # @!method initialize(cql, params)
+      # @param cql [String] a cql statement
+      # @param params [Hash, Array] named or positional arguments for the query
+      #
+      # @note Positional arguments are only supported on Apache Cassandra 2.1
+      #   and above.
+      #
       # @overload initialize(cql, *params)
+      #   Uses the deprecated splat-style way of passing positional arguments.
+      #
       #   @deprecated Please pass a single {Hash} or {Array} of named or
       #     positional arguments accordingly, the `*params` style is deprecated.
       #
       #   @param cql [String] a cql statement
-      #   @param params [*Object] positional arguments for the query
-      #
-      # @overload initialize(cql, params)
-      #   @param cql [String] a cql statement
-      #   @param params [Hash, Array] named or positional arguments for the
-      #     query
+      #   @param params [*Object] **this style of positional arguments is
+      #     deprecated, please pass a single {Array} or {Hash} instead** -
+      #     positional arguments for the query
       #
       # @raise [ArgumentError] if cql statement given is not a String
       def initialize(cql, *params)
@@ -47,28 +53,31 @@ module Cassandra
           raise ::ArgumentError, "cql must be a string, #{cql.inspect} given"
         end
 
-        if params.size > 1 || (params.first && !(params.first.is_a?(::Array) || params.first.is_a?(::Hash)))
-          ::Kernel.warn "[WARNING] Splat style (*params) positional arguments " \
-                        "are deprecated, pass a Hash or an Array instead - " \
-                        "called from #{caller.first}"
-          @params       = params
-          @params_types = params.map(&method(:guess_type))
-        else
-          params = params.first || EMPTY_LIST
+        if params.one? && (params.first.is_a?(::Array) || params.first.is_a?(::Hash))
+          params = params.first
 
           case params
           when ::Hash
-            @params_types = params.map {|_, value| guess_type(value)}
+            param_types = ::Hash.new
+            params.each do |name, value|
+              param_types[name] = guess_type(value)
+            end
           when ::Array
-            @params_types = params.map {|value| guess_type(value)}
-          else
-            raise ::ArgumentError, "params must be a Hash or an Array, #{params.inspect} given"
+            params_types = params.map {|value| guess_type(value)}
+          end
+        else
+          unless params.empty?
+            ::Kernel.warn "[WARNING] Splat style (*params) positional " \
+                          "arguments are deprecated, pass a Hash or an " \
+                          "Array instead - called from #{caller.first}"
           end
 
-          @params = params
+          params_types = params.map {|value| guess_type(value)}
         end
 
-        @cql = cql
+        @cql          = cql
+        @params       = params
+        @params_types = params_types
       end
 
       # @return [String] a CLI-friendly simple statement representation
@@ -87,26 +96,28 @@ module Cassandra
       alias :== :eql?
 
       private
-      TYPE_GUESSES = {
-        String => :varchar,
-        Fixnum => :bigint,
-        Float => :double,
-        Bignum => :varint,
-        BigDecimal => :decimal,
-        TrueClass => :boolean,
-        FalseClass => :boolean,
-        NilClass => :bigint,
-        Uuid => :uuid,
-        TimeUuid => :uuid,
-        IPAddr => :inet,
-        Time => :timestamp,
-        Hash => :map,
-        Array => :list,
-        Set => :set,
+
+      # @private
+      @@type_guesses = {
+        ::String     => :varchar,
+        ::Fixnum     => :bigint,
+        ::Float      => :double,
+        ::Bignum     => :varint,
+        ::BigDecimal => :decimal,
+        ::TrueClass  => :boolean,
+        ::FalseClass => :boolean,
+        ::NilClass   => :bigint,
+        Uuid         => :uuid,
+        TimeUuid     => :uuid,
+        ::IPAddr     => :inet,
+        ::Time       => :timestamp,
+        ::Hash       => :map,
+        ::Array      => :list,
+        ::Set        => :set,
       }.freeze
 
       def guess_type(value)
-        type = TYPE_GUESSES[value.class]
+        type = @@type_guesses[value.class]
 
         raise ::ArgumentError, "Unable to guess the type of the argument: #{value.inspect}" unless type
 

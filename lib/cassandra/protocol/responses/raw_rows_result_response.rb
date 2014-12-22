@@ -34,7 +34,7 @@ module Cassandra
           @rows = Coder.read_values_v1(@raw_rows, @metadata)
         end
 
-        nil
+        @rows
       end
 
       def rows

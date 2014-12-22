@@ -40,10 +40,6 @@ module Cassandra
         end
       end
 
-      def self.decode(protocol_version, buffer, length, trace_id=nil)
-        new(buffer.read_string, buffer.read_string, buffer.read_string, trace_id)
-      end
-
       def eql?(other)
         self.change == other.change && self.keyspace == other.keyspace && self.table == other.table
       end

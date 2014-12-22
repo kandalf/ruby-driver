@@ -68,7 +68,7 @@ module Cassandra
           when UNLOGGED_TYPE then 'UNLOGGED'
           when COUNTER_TYPE then 'COUNTER'
         end
-        %(BATCH #{type_str} #{@part_count} #{@consistency.to_s.upcase})
+        %(BATCH #{type_str} #{@parts.size} #{@consistency.to_s.upcase})
       end
 
       private

@@ -25,14 +25,11 @@ module Cassandra
       attr_reader :cql
       # @private
       attr_reader :result_metadata
-      # @private
-      attr_reader :params_types
 
       # @private
       def initialize(cql, params_metadata, result_metadata, trace_id, keyspace, statement, options, hosts, consistency, retries, client, futures_factory, schema)
         @cql             = cql
         @params_metadata = params_metadata
-        @params_types    = params_metadata.map {|(_, _, _, type)| type}
         @result_metadata = result_metadata
         @trace_id        = trace_id
         @keyspace        = keyspace
@@ -45,51 +42,84 @@ module Cassandra
         @schema          = schema
       end
 
+      # @!method bind(args)
       # Creates a statement bound with specific arguments
       #
-      # @overload bind(*args)
-      #   @deprecated Please pass a single {Hash} or {Array} of named or
-      #     positional arguments accordingly, the `*args` style is deprecated.
-      #
-      #   @param args [*Object] positional arguments to bind, must contain the
-      #     same number of parameters as the number of positional argument
-      #     markers (`?`) in the CQL passed to {Cassandra::Session#prepare}.
-      #
-      # @overload bind(args)
-      #   @param args [Hash, Array] named or positional arguments to bind, must
+      # @param args [Hash, Array] named or positional arguments to bind, must
       #   contain the same number of parameters as the number of named
       #   (`:name`) or positional (`?`) markers in the original CQL passed to
       #   {Cassandra::Session#prepare}
       #
+      # @note Positional arguments are only supported on Apache Cassandra 2.1
+      #   and above.
+      #
+      # @overload bind(*args)
+      #   Creates a statement bound with specific arguments using the
+      #   deprecated splat-style way of passing positional arguments.
+      #
+      #   @deprecated Please pass a single {Hash} or {Array} of named or
+      #     positional arguments accordingly, the `*args` style is deprecated.
+      #
+      #   @param args [*Object] **this style of positional arguments is
+      #     deprecated, please pass a single {Array} or {Hash} instead**
+      #     - positional arguments to bind, must contain the same number of
+      #     parameters as the number of positional argument markers (`?`) in
+      #     the CQL passed to {Cassandra::Session#prepare}.
+      #
       # @return [Cassandra::Statements::Bound] bound statement
       def bind(*args)
-        if args.size > 1 || (args.first && !(args.first.is_a?(::Array) || args.first.is_a?(::Hash)))
-          ::Kernel.warn "[WARNING] Splat style (*params) positional arguments " \
-                        "are deprecated, pass a Hash or an Array instead - " \
-                        "called from #{caller.first}"
-        else
+        if args.one? && (args.first.is_a?(::Array) || args.first.is_a?(::Hash))
           args = args.first
+
+          Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{params_types.size} bind parameters, #{args.size} given" }
+
+          case args
+          when ::Hash
+            param_types = ::Hash.new
+            @params_metadata.each do |_, _, name, type|
+              Util.assert_one_of(args, name)     { "Argument #{name.inspect} is required, but none given" }
+              Util.assert_type(type, args[name]) { "Argument #{name.inspect} must be #{type.inspect}, #{args[name]} given" }
+
+              param_types[name] = type
+            end
+          when ::Array
+            params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
+              Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type.inspect}, #{args[i]} given" }
+              type
+            end
+          end
+        else
+          unless args.empty?
+            ::Kernel.warn "[WARNING] Splat style (*args) positional " \
+                          "arguments are deprecated, pass a Hash or an " \
+                          "Array instead - called from #{caller.first}"
+          end
+
+          Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{params_types.size} bind parameters, #{args.size} given" }
+
+          params_types = @params_metadata.each_with_index.map do |(_, _, name, type), i|
+            Util.assert_type(type, args[i]) { "argument for #{name.inspect} must be #{type.inspect}, #{args[i]} given" }
+            type
+          end
         end
 
-        Util.assert_equal(@params_metadata.size, args.size) { "expecting exactly #{@params_metadata.size} bind parameters, #{args.size} given" }
-
-        @params_metadata.each_with_index do |metadata, i|
-          Util.assert_type(metadata[3], args[i]) { "argument for #{metadata[2].inspect} must be #{metadata[3].inspect}, #{args[i]} given" }
-        end
-
-        return Bound.new(@cql, @params_types, @result_metadata, args) if @params_metadata.empty?
+        return Bound.new(@cql, params_types, @result_metadata, args) if @params_metadata.empty?
 
         keyspace, table, _, _ = @params_metadata.first
-        return Bound.new(@cql, @params_types, @result_metadata, args, keyspace) unless keyspace && table
+        return Bound.new(@cql, params_types, @result_metadata, args, keyspace) unless keyspace && table
 
-        values = ::Hash.new
-        @params_metadata.zip(args) do |(keyspace, table, column, type), value|
-          values[column] = value
+        if args.is_a?(::Hash)
+          values = args
+        else
+          values = ::Hash.new
+          @params_metadata.zip(args) do |(keyspace, table, column, type), value|
+            values[column] = value
+          end
         end
 
         partition_key = @schema.create_partition_key(keyspace, table, values)
 
-        Bound.new(@cql, @params_types, @result_metadata, args, keyspace, partition_key)
+        Bound.new(@cql, params_types, @result_metadata, args, keyspace, partition_key)
       end
 
       # @return [Cassandra::Execution::Info] execution info for PREPARE request
