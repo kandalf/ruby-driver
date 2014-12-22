@@ -647,9 +647,15 @@ module CCM extend self
   end
 
   def setup_cluster(no_dc = 1, no_nodes_per_dc = 3)
-    cluster_name = 'ruby-driver-cassandra-%s-tests-cluster-%sx%s' % [cassandra_version, no_dc, no_nodes_per_dc]
+    cluster_name = 'ruby-driver-cassandra-%s-test-cluster' % cassandra_version
 
-    if @current_cluster && @current_cluster.name == cluster_name
+    if @current_cluster
+      unless @current_cluster.nodes_count == (no_dc * no_nodes_per_dc) && @current_cluster.datacenters_count == no_dc
+        @current_cluster.stop
+        remove_cluster(@current_cluster.name)
+        create_cluster(cluster_name, cassandra_version, no_dc, no_nodes_per_dc)
+      end
+
       @current_cluster.start
       return @current_cluster
     end
