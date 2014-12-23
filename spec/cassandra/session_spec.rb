@@ -199,30 +199,23 @@ module Cassandra
       end
     end
 
-    [
-      [:execute, ['statement to execute']],
-      [:prepare, ['statement to prepare']],
-    ].each do |method, args|
-      describe("##{method}") do
-        let(:promise)   { double('promise') }
-        before do
-          expect(session).to receive(:"#{method}_async").with(*args).and_return(promise)
-        end
+    describe('#prepare') do
+      let(:promise)   { double('promise') }
+      let(:args)      { [double('statement to prepare')] }
 
-        it "resolves a promise returned by ##{method}_async" do
-          expect(promise).to receive(:get).once
-          session.__send__(method, *args)
-        end
+      it "resolves a promise returned by #prepare_async" do
+        expect(session).to receive(:prepare_async).with(*args).and_return(promise)
+        expect(promise).to receive(:get).once
+
+        session.prepare(*args)
       end
     end
 
     describe('#close') do
-      let(:promise) { double('promise') }
-      before do
-        expect(session).to receive(:close_async).with(no_args).and_return(promise)
-      end
+      let(:promise)   { double('promise') }
 
       it 'resolves a promise returned by #close_async' do
+        expect(session).to receive(:close_async).with(no_args).and_return(promise)
         expect(promise).to receive(:get).once.and_return('success')
         expect(session.close).to eq('success')
       end

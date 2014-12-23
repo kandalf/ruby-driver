@@ -95,7 +95,9 @@ module Cassandra
       options = args.pop if args.last.is_a?(::Hash)
 
       unless args.empty?
-        ::Kernel.warn("[WARNING] Splat style (*args) positional arguments are deprecated, use the :arguments option instead, called from #{caller.first}")
+        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
+                      "are deprecated, use the :arguments option instead, " \
+                      "called from #{caller.first}"
 
         options ||= {}
         options[:arguments] = args
@@ -164,8 +166,24 @@ module Cassandra
     # @raise [Cassandra::Errors::ValidationError] if Cassandra fails to validate
     # @raise [Cassandra::Errors::TimeoutError] if request has not completed
     #   within the `:timeout` given
-    def execute(*args)
-      execute_async(*args).get
+    def execute(statement, *args)
+      options = nil
+      options = args.pop if args.last.is_a?(::Hash)
+
+      unless args.empty?
+        ::Kernel.warn "[WARNING] Splat style (*args) positional arguments " \
+                      "are deprecated, use the :arguments option instead, " \
+                      "called from #{caller.first}"
+
+        options ||= {}
+        options[:arguments] = args
+      end
+
+      if options
+        execute_async(statement, options).get
+      else
+        execute_async(statement).get
+      end
     end
 
     # Prepares a given statement and returns a future prepared statement
