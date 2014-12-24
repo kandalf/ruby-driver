@@ -291,7 +291,7 @@ module Cassandra
         when :float            then write_float(buffer, value)
         when :int              then write_int(buffer, value)
         when :inet             then write_inet(buffer, value)
-        when :text, :varchar   then write_varchar(buffer, value)
+        when :varchar, :text   then write_varchar(buffer, value)
         when :timestamp        then write_timestamp(buffer, value)
         when :timeuuid, :uuid  then write_uuid(buffer, value)
         when :varint           then write_varint(buffer, value)
